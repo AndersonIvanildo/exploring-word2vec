@@ -170,5 +170,8 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Data WORD2VEC
+data/
+
 # PyPI configuration file
 .pypirc
