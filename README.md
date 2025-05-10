@@ -22,7 +22,7 @@ Este projeto explora o uso de Word2Vec nas arquiteturas CBOW e Skip-gram para ag
    ```bash
    git clone https://github.com/AndersonIvanildo/exploring-word2vec.git
    cd exploring-word2vec
-````
+    ````
 
 2. **Instalar dependências sem instalar o pacote raiz**:
 
