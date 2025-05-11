@@ -1,14 +1,14 @@
-import streamlit as st
+import nltk
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import streamlit as st
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
-from tools.process_text import ProcessText
-
-toolProcess = ProcessText()
+from gensim.models import KeyedVectors
+from utils.text_toolbox import TextToolBox
 
 # Configuração inicial
 st.set_page_config(
@@ -16,6 +16,26 @@ st.set_page_config(
     page_icon="📊",
     layout="wide"
 )
+
+@st.cache_resource
+def download_nltk_resources():
+    nltk.download('punkt')
+    nltk.download('stopwords')
+
+@st.cache_resource
+def load_word2vec_models():
+    try:
+        cbow_model = KeyedVectors.load_word2vec_format('data/model/cbow_ptbr_50d/cbow_s50.txt')
+        skipgram_model = KeyedVectors.load_word2vec_format('data/model/skipgram_ptbr_50d/skip_s50.txt')
+        return cbow_model, skipgram_model
+    except Exception as e:
+        print(f"Erro ao carregar modelos: {e}")
+        return None, None
+
+download_nltk_resources()
+cbow_model, skipgram_model = load_word2vec_models()
+
+textToolBox = TextToolBox(cbow_model, skipgram_model)
 
 # Inicialização do estado da aplicação
 if 'sentences' not in st.session_state:
@@ -99,10 +119,10 @@ with col1:
         for sentence in new_sentence.strip().split('\n'):
             if sentence.strip() and sentence not in st.session_state.sentences:
                 # Seleciona o modelo apropriado
-                model = toolProcess.return_model(model_type)
+                word2vec_model = textToolBox.return_model(model_type)
                 
                 # Vetoriza a frase
-                vector = toolProcess.sentence_to_vector(sentence, model)
+                vector = textToolBox.sentence_to_vector(sentence, word2vec_model)
                 
                 if vector is not None:
                     st.session_state.sentences.append(sentence)
@@ -205,22 +225,15 @@ with col2:
             cluster_sentences = [s for i, s in enumerate(st.session_state.sentences) 
                                 if st.session_state.clusters[i] == cluster_id]
             
-            # Extrair palavras-chave
-            keywords = toolProcess.extract_keywords(cluster_sentences)
-            
             # Exibir card do cluster
-            with st.expander(f"🔵 Cluster {int(cluster_id)}: {', '.join(keywords[:3])}", expanded=True):
+            with st.expander(f"🔵 Cluster {int(cluster_id)}:", expanded=True):
                 col1, col2 = st.columns([3, 1])
                 
                 with col1:
                     st.subheader("Frases neste cluster:")
                     for i, sent in enumerate(cluster_sentences):
                         st.markdown(f"- {sent}")
-                
-                with col2:
-                    st.subheader("Palavras-chave:")
-                    for word in keywords:
-                        st.markdown(f"- {word}")
+
     else:
         st.info("Adicione frases para visualizar clusters.")
 
